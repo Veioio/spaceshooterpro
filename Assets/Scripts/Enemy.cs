@@ -1,12 +1,13 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEditor;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
     [SerializeField]
     private float _speed = 4f;
+    [SerializeField]
+    private int _points = 10;
+
+    private bool _isDestroyed;
 
     // Start is called before the first frame update
     void Start()
@@ -27,23 +28,46 @@ public class Enemy : MonoBehaviour
     }
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (_isDestroyed)
+        {
+            return;
+        }
+
         if (other.tag == "Laser")
         {
             Destroy(other.gameObject);
-            Destroy(this.gameObject);
+
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.AddScore(_points);
+            }
+
+            Explode();
         }
 
         if (other.tag == "Player")
         {
             Player player = other.transform.GetComponent<Player>();
-            
+
             if (player != null)
             {
                 player.Damage();
             }
 
-            Destroy(this.gameObject);
+            Explode();
         }
 
+    }
+
+    private void Explode()
+    {
+        _isDestroyed = true;
+
+        if (GameAssets.Instance != null)
+        {
+            GameAssets.Instance.SpawnExplosion(transform.position, 0.25f);
+        }
+
+        Destroy(this.gameObject);
     }
 }
