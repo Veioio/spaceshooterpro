@@ -1,0 +1,475 @@
+<title>Pocket Worm</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Archivo:wght@500;700&display=swap">
+<style>
+/* Layout: one handset centred on a desk mat; LCD on top, keypad below. Single deliberate look, no theme switch. */
+:root {
+  --mat: #1b1f24;
+  --mat-2: #252b33;
+  --shell: #233a5e;
+  --shell-hi: #33507c;
+  --shell-lo: #142540;
+  --lcd: #c7d6a8;
+  --lcd-shade: #b4c493;
+  --ink: #2c3a22;
+  --key: #d9dfe6;
+  --key-lo: #a8b1bc;
+  --key-ink: #233a5e;
+  --label: #c6d2e3;
+  --f-lcd: "Silkscreen", "Courier New", monospace;
+  --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body {
+  background: radial-gradient(120% 90% at 50% 0%, var(--mat-2), var(--mat));
+  color: var(--label);
+  font-family: var(--f-body);
+  display: flex; align-items: center; justify-content: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px;
+  box-sizing: border-box;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none; -webkit-user-select: none;
+}
+.phone {
+  width: min(380px, 100%);
+  max-height: 100%;
+  background: linear-gradient(160deg, var(--shell-hi), var(--shell) 40%, var(--shell-lo));
+  border-radius: 46px 46px 64px 64px / 40px 40px 90px 90px;
+  padding: 22px 20px 26px;
+  box-sizing: border-box;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.18), inset 0 -6px 14px rgba(0,0,0,.35), 0 24px 50px rgba(0,0,0,.55);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.brand { text-align: center; font-weight: 700; letter-spacing: .32em; font-size: 12px; color: var(--label); opacity: .85; }
+.bezel {
+  background: #0f1a2b; border-radius: 18px 18px 26px 26px; padding: 12px;
+  box-shadow: inset 0 3px 8px rgba(0,0,0,.6);
+}
+.lcd {
+  position: relative; background: var(--lcd); border-radius: 6px; overflow: hidden;
+  box-shadow: inset 0 0 18px var(--lcd-shade);
+  padding: 6px 7px 7px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.status {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--f-lcd); color: var(--ink); font-size: 13px; line-height: 1;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 2px solid var(--ink); padding-bottom: 3px;
+}
+.status .bonus { font-size: 11px; }
+canvas { display: block; width: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+.screen {
+  position: absolute; inset: 0; background: var(--lcd);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--f-lcd); color: var(--ink); text-align: center; padding: 8px;
+}
+.screen h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: .04em; line-height: 1; }
+.screen p { margin: 0; font-size: 11px; line-height: 1.35; }
+.menu { display: grid; gap: 2px; width: 78%; font-size: 12px; }
+.menu button {
+  all: unset; display: flex; justify-content: space-between; padding: 2px 6px; cursor: pointer;
+  font-family: var(--f-lcd); color: var(--ink);
+}
+.menu button.sel, .menu button:focus-visible { background: var(--ink); color: var(--lcd); }
+.softkeys { display: flex; justify-content: space-between; font-family: var(--f-lcd); font-size: 10px; width: 100%; padding: 0 4px; box-sizing: border-box; position: absolute; bottom: 5px; left: 0; }
+
+.controls { display: flex; flex-direction: column; gap: 12px; }
+.nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.soft {
+  flex: 0 0 auto; width: 64px; height: 26px; border-radius: 14px; border: 0;
+  background: linear-gradient(var(--key), var(--key-lo)); color: var(--key-ink);
+  font: 700 10px/1 var(--f-body); letter-spacing: .12em; cursor: pointer;
+  box-shadow: 0 2px 0 var(--shell-lo);
+}
+.navi {
+  flex: 1; height: 30px; border-radius: 16px; border: 0; cursor: pointer;
+  background: linear-gradient(#e7ecf1, #b6bfca); color: var(--key-ink);
+  font: 700 11px/1 var(--f-body); letter-spacing: .3em;
+  box-shadow: 0 3px 0 var(--shell-lo), inset 0 1px 0 #fff;
+}
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px 14px; padding: 0 6px; }
+.key {
+  height: 40px; border: 0; border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%;
+  background: linear-gradient(var(--key), var(--key-lo)); color: var(--key-ink);
+  font-family: var(--f-body); cursor: pointer; touch-action: manipulation;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  box-shadow: 0 3px 0 var(--shell-lo), inset 0 1px 0 rgba(255,255,255,.7);
+}
+.key b { font-size: 17px; line-height: 1; }
+.key small { font-size: 8px; letter-spacing: .14em; font-weight: 700; opacity: .7; min-height: 8px; }
+.key.dir { background: linear-gradient(#f2f5f8, #c3ccd6); }
+.key:active, .key.down, .soft:active, .navi:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shell-lo); }
+button:focus-visible { outline: 2px solid #ffd479; outline-offset: 2px; }
+.hint { text-align: center; font-size: 11px; color: var(--label); opacity: .7; margin: 0; line-height: 1.4; }
+@media (max-height: 700px) {
+  .key { height: 32px; } .key small { display: none; } .phone { gap: 10px; padding-block: 16px 18px; } .hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .key:active, .key.down { transform: none; } }
+</style>
+
+<main class="phone" aria-label="Worm game handset">
+  <div class="brand">POCKET&nbsp;WORM</div>
+  <div class="bezel">
+    <div class="lcd">
+      <div class="status"><span id="score">0000</span><span class="bonus" id="bonus"></span><span id="lvl">LV5</span></div>
+      <canvas id="cv" aria-label="Game board"></canvas>
+
+      <div class="screen" id="menu">
+        <h1>WORM</h1>
+        <div class="menu" role="menu">
+          <button role="menuitem" data-act="start" class="sel"><span>New game</span><span>&rsaquo;</span></button>
+          <button role="menuitem" data-act="level"><span>Level</span><span id="mLevel">5</span></button>
+          <button role="menuitem" data-act="walls"><span>Walls</span><span id="mWalls">On</span></button>
+          <button role="menuitem" data-act="sound"><span>Sound</span><span id="mSound">On</span></button>
+        </div>
+        <p>Top score <span id="mBest">0</span></p>
+      </div>
+
+      <div class="screen" id="paused" hidden>
+        <h1>PAUSED</h1>
+        <p>Press 5 or Space<br>to continue</p>
+      </div>
+
+      <div class="screen" id="over" hidden>
+        <h1>GAME OVER</h1>
+        <p>Your score:<br><span id="oScore" style="font-size:20px">0</span></p>
+        <p id="oBest"></p>
+        <p>Press 5 to play again</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="nav">
+      <button class="soft" id="kMenu" aria-label="Menu">MENU</button>
+      <button class="navi" id="kSel" aria-label="Select">OK</button>
+      <button class="soft" id="kC" aria-label="Pause">C</button>
+    </div>
+    <div class="keypad" id="pad">
+      <button class="key" data-k="1"><b>1</b><small>&nbsp;</small></button>
+      <button class="key dir" data-k="2" aria-label="Up"><b>2</b><small>UP</small></button>
+      <button class="key" data-k="3"><b>3</b><small>&nbsp;</small></button>
+      <button class="key dir" data-k="4" aria-label="Left"><b>4</b><small>LEFT</small></button>
+      <button class="key" data-k="5" aria-label="Start or pause"><b>5</b><small>GO</small></button>
+      <button class="key dir" data-k="6" aria-label="Right"><b>6</b><small>RIGHT</small></button>
+      <button class="key" data-k="7"><b>7</b><small>&nbsp;</small></button>
+      <button class="key dir" data-k="8" aria-label="Down"><b>8</b><small>DOWN</small></button>
+      <button class="key" data-k="9"><b>9</b><small>&nbsp;</small></button>
+    </div>
+    <p class="hint">Steer with 2 4 6 8, the arrow keys, WASD or a swipe on the screen.<br>5 or Space starts and pauses.</p>
+  </div>
+</main>
+
+<script>
+(() => {
+  // Board in cells; each cell is drawn as a 4x4 block of LCD "dots".
+  const COLS = 21, ROWS = 12, DOT = 4;
+  const INK = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#2c3a22';
+  const LCD = getComputedStyle(document.documentElement).getPropertyValue('--lcd').trim() || '#c7d6a8';
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('worm.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('worm.' + k, JSON.stringify(v)); } catch {} }
+  };
+  const opts = { level: store.get('level', 5), walls: store.get('walls', true), sound: store.get('sound', true) };
+  let best = store.get('best', 0);
+
+  let state = 'menu';         // menu | play | paused | over
+  let worm, dir, queue, food, bonus, eaten, score, grow, acc, last, dead, flash;
+
+  // Canvas: pixel size chosen to fit the LCD width, kept an integer for crisp dots.
+  let px = 3;
+  function fit() {
+    const w = cv.parentElement.clientWidth - 14;
+    px = Math.max(1, Math.floor(w / (COLS * DOT)));
+    cv.width = COLS * DOT * px; cv.height = ROWS * DOT * px;
+    draw();
+  }
+
+  function newGame() {
+    const y = Math.floor(ROWS / 2);
+    worm = [[8, y], [7, y], [6, y], [5, y], [4, y]];
+    dir = 'right'; queue = []; eaten = 0; score = 0; grow = 0; bonus = null; dead = false; flash = 0;
+    placeFood(); acc = 0; last = performance.now();
+    setState('play'); hud();
+  }
+
+  function freeCell() {
+    const taken = new Set(worm.map(([x, y]) => x + ',' + y));
+    if (food) taken.add(food.join(','));
+    if (bonus) { taken.add(bonus.x + ',' + bonus.y); taken.add((bonus.x + 1) + ',' + bonus.y); }
+    const free = [];
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!taken.has(x + ',' + y)) free.push([x, y]);
+    return free.length ? free[Math.floor(Math.random() * free.length)] : null;
+  }
+  function placeFood() { food = null; food = freeCell(); }
+  function placeBonus() {
+    // Bonus critters are two cells wide, like the ones in the old phones.
+    const taken = new Set(worm.map(([x, y]) => x + ',' + y)); taken.add(food.join(','));
+    const spots = [];
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS - 1; x++)
+      if (!taken.has(x + ',' + y) && !taken.has((x + 1) + ',' + y)) spots.push([x, y]);
+    if (!spots.length) return;
+    const [x, y] = spots[Math.floor(Math.random() * spots.length)];
+    bonus = { x, y, ttl: 20, kind: Math.floor(Math.random() * 3) };
+  }
+
+  const tickMs = () => 300 - opts.level * 27;
+
+  function step() {
+    if (queue.length) dir = queue.shift();
+    const [dx, dy] = DIRS[dir];
+    let [hx, hy] = worm[0];
+    hx += dx; hy += dy;
+    if (opts.walls) {
+      if (hx < 0 || hy < 0 || hx >= COLS || hy >= ROWS) return die();
+    } else {
+      hx = (hx + COLS) % COLS; hy = (hy + ROWS) % ROWS;
+    }
+    // The tail moves away this tick unless we're growing, so it's safe to enter.
+    const body = grow > 0 ? worm : worm.slice(0, -1);
+    if (body.some(([x, y]) => x === hx && y === hy)) return die();
+
+    worm.unshift([hx, hy]);
+    if (grow > 0) grow--; else worm.pop();
+
+    if (hx === food[0] && hy === food[1]) {
+      score += opts.level; eaten++; grow += 1; beep(880, .05);
+      placeFood();
+      if (!bonus && eaten % 5 === 0) placeBonus();
+      if (!food) return win();
+    }
+    if (bonus) {
+      if (hy === bonus.y && (hx === bonus.x || hx === bonus.x + 1)) {
+        score += 5 * opts.level + bonus.ttl * 2; grow += 2; bonus = null; beep(660, .05); setTimeout(() => beep(990, .08), 60);
+      } else if (--bonus.ttl <= 0) bonus = null;
+    }
+    hud();
+  }
+
+  function die() {
+    dead = true; flash = 8; beep(140, .35, 'square');
+    if (score > best) { best = score; store.set('best', best); }
+  }
+  function win() { die(); }
+
+  function frame(t) {
+    const dt = Math.min(250, t - last); last = t;
+    if (state === 'play') {
+      if (dead) {
+        acc += dt;
+        if (acc > 110) { acc = 0; flash--; if (flash <= 0) { gameOver(); } }
+      } else {
+        acc += dt;
+        const ms = tickMs();
+        while (acc >= ms && !dead) { acc -= ms; step(); }
+      }
+    }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  // --- drawing ---------------------------------------------------------
+  function dot(cx, cy, dx, dy) { ctx.fillRect((cx * DOT + dx) * px, (cy * DOT + dy) * px, px, px); }
+  function block(cx, cy, x0, y0, w, h) { ctx.fillRect((cx * DOT + x0) * px, (cy * DOT + y0) * px, w * px, h * px); }
+
+  const CRITTERS = [
+    // 8x4 dot sprites spanning two cells
+    ['.##..##.', '########', '.#.##.#.', '#..##..#'],
+    ['..####..', '.#.##.#.', '########', '#.#..#.#'],
+    ['#......#', '.######.', '##.##.##', '.#....#.']
+  ];
+
+  function draw() {
+    ctx.fillStyle = LCD; ctx.fillRect(0, 0, cv.width, cv.height);
+    if (!worm) return;
+    const hide = dead && flash % 2 === 1;
+    ctx.fillStyle = INK;
+
+    if (opts.walls) {
+      // a dotted frame so walls read as solid
+      ctx.globalAlpha = .35;
+      for (let x = 0; x < COLS * DOT; x += 2) { ctx.fillRect(x * px, 0, px, px); ctx.fillRect(x * px, cv.height - px, px, px); }
+      for (let y = 0; y < ROWS * DOT; y += 2) { ctx.fillRect(0, y * px, px, px); ctx.fillRect(cv.width - px, y * px, px, px); }
+      ctx.globalAlpha = 1;
+    }
+
+    if (food) { const [fx, fy] = food; dot(fx, fy, 1, 0); dot(fx, fy, 2, 1); dot(fx, fy, 1, 2); dot(fx, fy, 0, 1); }
+
+    if (bonus && (bonus.ttl > 5 || bonus.ttl % 2 === 0)) {
+      const s = CRITTERS[bonus.kind];
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) if (s[r][c] === '#') dot(bonus.x + (c >> 2), bonus.y, c & 3, r);
+    }
+
+    if (hide) return;
+    for (let i = worm.length - 1; i >= 0; i--) {
+      const [x, y] = worm[i];
+      if (i === 0) { drawHead(x, y); continue; }
+      // segment: 3x3 core, plus a 1-dot bridge toward the segment ahead so the worm reads as one body
+      block(x, y, 0, 0, 3, 3);
+      if ((x + y + i) % 2 === 0) { ctx.fillStyle = LCD; dot(x, y, 1, 1); ctx.fillStyle = INK; }
+      const [px2, py2] = worm[i - 1];
+      const ddx = wrapDelta(px2 - x, COLS), ddy = wrapDelta(py2 - y, ROWS);
+      if (ddx === 1) block(x, y, 3, 0, 1, 3);
+      if (ddy === 1) block(x, y, 0, 3, 3, 1);
+      if (ddx === -1 && x > 0) block(x - 1, y, 3, 0, 1, 3);
+      if (ddy === -1 && y > 0) block(x, y - 1, 0, 3, 3, 1);
+    }
+  }
+  function wrapDelta(d, n) { if (d > 1) return d - n; if (d < -1) return d + n; return d; }
+  function drawHead(x, y) {
+    block(x, y, 0, 0, 3, 3);
+    ctx.fillStyle = LCD;
+    // eye sits toward the direction of travel
+    const eye = { right: [2, 0], left: [0, 0], up: [0, 0], down: [0, 2] }[dir];
+    dot(x, y, eye[0], eye[1]);
+    ctx.fillStyle = INK;
+    // open mouth when food is one step ahead
+    const [dx, dy] = DIRS[dir];
+    if (food && food[0] === x + dx && food[1] === y + dy) {
+      ctx.fillStyle = LCD;
+      if (dir === 'right') dot(x, y, 2, 1); if (dir === 'left') dot(x, y, 0, 1);
+      if (dir === 'up') dot(x, y, 1, 0); if (dir === 'down') dot(x, y, 1, 2);
+      ctx.fillStyle = INK;
+    }
+  }
+
+  // --- HUD & screens ---------------------------------------------------
+  function hud() {
+    $('score').textContent = String(score || 0).padStart(4, '0');
+    $('lvl').textContent = 'LV' + opts.level;
+    $('bonus').textContent = bonus ? 'BONUS ' + String(bonus.ttl).padStart(2, '0') : '';
+  }
+  function setState(s) {
+    state = s;
+    $('menu').hidden = s !== 'menu';
+    $('paused').hidden = s !== 'paused';
+    $('over').hidden = s !== 'over';
+    if (s === 'menu') renderMenu();
+  }
+  function gameOver() {
+    $('oScore').textContent = score;
+    $('oBest').textContent = score >= best && score > 0 ? 'New top score!' : 'Top score ' + best;
+    setState('over');
+  }
+
+  const items = [...document.querySelectorAll('.menu button')];
+  let sel = 0;
+  function renderMenu() {
+    $('mLevel').textContent = opts.level;
+    $('mWalls').textContent = opts.walls ? 'On' : 'Off';
+    $('mSound').textContent = opts.sound ? 'On' : 'Off';
+    $('mBest').textContent = best;
+    items.forEach((b, i) => b.classList.toggle('sel', i === sel));
+  }
+  function activate(act, delta = 1) {
+    if (act === 'start') return newGame();
+    if (act === 'level') { opts.level = ((opts.level - 1 + delta + 9) % 9) + 1; store.set('level', opts.level); }
+    if (act === 'walls') { opts.walls = !opts.walls; store.set('walls', opts.walls); }
+    if (act === 'sound') { opts.sound = !opts.sound; store.set('sound', opts.sound); if (opts.sound) beep(880, .05); }
+    renderMenu(); hud();
+  }
+  items.forEach((b, i) => b.addEventListener('click', () => { sel = i; audioOn(); activate(b.dataset.act); }));
+
+  // --- input -----------------------------------------------------------
+  function turn(d) {
+    if (state === 'menu') {
+      if (d === 'up') sel = (sel + items.length - 1) % items.length;
+      if (d === 'down') sel = (sel + 1) % items.length;
+      const act = items[sel].dataset.act;
+      if (d === 'left' && act !== 'start') activate(act, -1);
+      if (d === 'right') activate(act, 1);
+      return renderMenu();
+    }
+    if (state !== 'play' || dead) return;
+    const lastDir = queue.length ? queue[queue.length - 1] : dir;
+    if (d === lastDir || d === OPP[lastDir] || queue.length >= 2) return;
+    queue.push(d);
+  }
+  function primary() {
+    audioOn();
+    if (state === 'menu') return activate(items[sel].dataset.act);
+    if (state === 'play' && !dead) return setState('paused');
+    if (state === 'paused') { last = performance.now(); return setState('play'); }
+    if (state === 'over') return newGame();
+  }
+  function back() {
+    if (state === 'play' && !dead) return setState('paused');
+    if (state === 'paused' || state === 'over') return setState('menu');
+  }
+
+  const KEYS = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right',
+    '2': 'up', '8': 'down', '4': 'left', '6': 'right'
+  };
+  addEventListener('keydown', e => {
+    if (KEYS[e.key]) { e.preventDefault(); audioOn(); turn(KEYS[e.key]); pressVisual(e.key); return; }
+    if (e.key === ' ' || e.key === 'Enter' || e.key === '5') { e.preventDefault(); primary(); pressVisual('5'); return; }
+    if (e.key === 'Escape' || e.key === 'p' || e.key === 'P' || e.key === 'Backspace') { e.preventDefault(); back(); }
+  });
+  function pressVisual(k) {
+    const map = { ArrowUp: '2', ArrowDown: '8', ArrowLeft: '4', ArrowRight: '6', w: '2', s: '8', a: '4', d: '6' };
+    const b = document.querySelector(`.key[data-k="${map[k] || k}"]`);
+    if (!b) return; b.classList.add('down'); setTimeout(() => b.classList.remove('down'), 90);
+  }
+
+  const PADDIR = { '2': 'up', '8': 'down', '4': 'left', '6': 'right' };
+  document.getElementById('pad').addEventListener('pointerdown', e => {
+    const b = e.target.closest('.key'); if (!b) return;
+    e.preventDefault(); audioOn();
+    const k = b.dataset.k;
+    if (PADDIR[k]) turn(PADDIR[k]); else if (k === '5') primary();
+  });
+  $('kSel').addEventListener('click', primary);
+  $('kMenu').addEventListener('click', () => { if (state === 'play' && !dead) setState('paused'); else setState('menu'); });
+  $('kC').addEventListener('click', back);
+
+  // swipe on the screen
+  let sx = 0, sy = 0, swiping = false;
+  const lcd = document.querySelector('.lcd');
+  lcd.addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; swiping = true; }, { passive: true });
+  lcd.addEventListener('touchmove', e => {
+    if (!swiping) return;
+    const t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+    if (state === 'play') e.preventDefault();
+    audioOn(); turn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+    sx = t.clientX; sy = t.clientY;
+  }, { passive: false });
+  lcd.addEventListener('touchend', () => { swiping = false; });
+
+  document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !dead) setState('paused'); });
+
+  // --- sound (starts after the first key press) ------------------------
+  let ac = null;
+  function audioOn() { if (!ac && opts.sound) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch {} } }
+  function beep(freq, dur, type = 'square') {
+    if (!opts.sound || !ac) return;
+    try {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(.06, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur);
+      o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + dur);
+    } catch {}
+  }
+
+  // Attract mode: show a worm on the board behind the menu.
+  worm = [[12, 6], [11, 6], [10, 6], [9, 6], [9, 5], [9, 4]]; dir = 'right'; food = [15, 6]; score = 0;
+  addEventListener('resize', fit);
+  fit(); setState('menu'); hud();
+  requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
+})();
+</script>
